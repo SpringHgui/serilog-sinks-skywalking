@@ -25,20 +25,65 @@ namespace Serilog.Sinks.Skywalking
             this._formatter = formatter;
         }
 
+        ISkyApmLogDispatcher _skyApmLogDispatcher;
+        IEntrySegmentContextAccessor _entrySegmentContextAccessor;
+
+        object _locker = new object();
+
         public void Emit(LogEvent logEvent)
         {
-            var skyApmLogDispatcher = _serviceCollection.GetService<ISkyApmLogDispatcher>();
-            if (skyApmLogDispatcher == null)
-                return;
+            if (_skyApmLogDispatcher == null)
+            {
+                lock (_locker)
+                {
+                    if (_skyApmLogDispatcher == null)
+                    {
+                        _skyApmLogDispatcher = _serviceCollection.GetService<ISkyApmLogDispatcher>();
+                        if (_skyApmLogDispatcher == null)
+                            return;
+                    }
+                }
+            }
 
-            var _entrySegmentContextAccessor = _serviceCollection.GetService<IEntrySegmentContextAccessor>();
-            if (_entrySegmentContextAccessor == null || _entrySegmentContextAccessor.Context == null)
+            if (_entrySegmentContextAccessor == null)
+            {
+                lock (_locker)
+                {
+                    if (_entrySegmentContextAccessor == null)
+                    {
+                        _entrySegmentContextAccessor = _serviceCollection.GetService<IEntrySegmentContextAccessor>();
+                        if (_entrySegmentContextAccessor == null)
+                            return;
+                    }
+                }
+            }
+
+            if (_entrySegmentContextAccessor.Context == null)
+            {
                 return;
+            }
+
+            string renderMessage = null;
+            if (_formatter != null)
+            {
+                using var render = new StringWriter(CultureInfo.InvariantCulture);
+                _formatter.Format(logEvent, render);
+
+                renderMessage = render.ToString();
+            }
+            else
+            {
+                renderMessage = logEvent.RenderMessage();
+
+                if (logEvent.Exception != null)
+                    renderMessage += Environment.NewLine + logEvent.Exception.ToString();
+            }
 
             var logs = new Dictionary<string, object>();
-            logs.Add("className", "className");
+
+            //logs.Add("className", "className");
             logs.Add("Level", logEvent.Level.ToString());
-            logs.Add("logMessage", logEvent.RenderMessage());
+            logs.Add("logMessage", renderMessage);
 
             var logContext = new SkyApm.Tracing.Segments.LoggerContext()
             {
@@ -47,7 +92,7 @@ namespace Serilog.Sinks.Skywalking
                 Date = DateTimeOffset.UtcNow.Offset.Ticks
             };
 
-            skyApmLogDispatcher.Dispatch(logContext);
+            _skyApmLogDispatcher.Dispatch(logContext);
         }
     }
 }

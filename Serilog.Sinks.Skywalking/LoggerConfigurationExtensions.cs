@@ -23,7 +23,7 @@ namespace Serilog
             this LoggerSinkConfiguration loggerConfiguration, IServiceProvider serviceCollection, ITextFormatter formatter = null)
         {
             return loggerConfiguration
-                .Sink(new SkywalkingSink(serviceCollection, formatter ?? new JsonFormatter()));
+                .Sink(new SkywalkingSink(serviceCollection, formatter));
         }
 
         public static LoggerConfiguration SkywalkingBatch(
@@ -35,7 +35,7 @@ namespace Serilog
                 Period = TimeSpan.FromSeconds(period)
             };
 
-            var batchingSink = new PeriodicBatchingSink(new SkywalkingBatchedSink(serviceCollection, formatter ?? new JsonFormatter()), batchingOptions);
+            var batchingSink = new PeriodicBatchingSink(new SkywalkingBatchedSink(serviceCollection, formatter), batchingOptions);
 
             return loggerConfiguration
                 .Sink(batchingSink);

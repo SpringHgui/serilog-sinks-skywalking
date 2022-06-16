@@ -14,56 +14,40 @@ using System.Threading.Tasks;
 
 namespace Serilog.Sinks.Skywalking
 {
-    public class SkywalkingSink : IBatchedLogEventSink
+    public class SkywalkingSink : ILogEventSink
     {
         ITextFormatter _formatter;
-        IServiceProvider serviceCollection;
+        IServiceProvider _serviceCollection;
 
         public SkywalkingSink(IServiceProvider serviceCollection, ITextFormatter formatter)
         {
+            this._serviceCollection = serviceCollection;
             this._formatter = formatter;
         }
 
-        public async Task EmitBatchAsync(IEnumerable<LogEvent> batch)
+        public void Emit(LogEvent logEvent)
         {
-            var skyApmLogDispatcher = serviceCollection.GetService<ISkyApmLogDispatcher>();
+            var skyApmLogDispatcher = _serviceCollection.GetService<ISkyApmLogDispatcher>();
             if (skyApmLogDispatcher == null)
                 return;
 
-            var _entrySegmentContextAccessor = serviceCollection.GetService<IEntrySegmentContextAccessor>();
-            if (_entrySegmentContextAccessor == null)
+            var _entrySegmentContextAccessor = _serviceCollection.GetService<IEntrySegmentContextAccessor>();
+            if (_entrySegmentContextAccessor == null || _entrySegmentContextAccessor.Context == null)
                 return;
 
-            foreach (var logEvent in batch)
+            var logs = new Dictionary<string, object>();
+            logs.Add("className", "className");
+            logs.Add("Level", logEvent.Level.ToString());
+            logs.Add("logMessage", logEvent.RenderMessage());
+
+            var logContext = new SkyApm.Tracing.Segments.LoggerContext()
             {
-                using (var render = new StringWriter(CultureInfo.InvariantCulture))
-                {
-                    _formatter.Format(logEvent, render);
+                Logs = logs,
+                SegmentContext = _entrySegmentContextAccessor.Context,
+                Date = DateTimeOffset.UtcNow.Offset.Ticks
+            };
 
-                    render.ToString();
-                }
-
-                var logs = new Dictionary<string, object>();
-                logs.Add("className", "className");
-                logs.Add("Level", logEvent.Level.ToString());
-                logs.Add("logMessage", logEvent.RenderMessage());
-
-                var logContext = new SkyApm.Tracing.Segments.LoggerContext()
-                {
-                    Logs = logs,
-                    SegmentContext = _entrySegmentContextAccessor.Context,
-                    Date = DateTimeOffset.UtcNow.Offset.Ticks
-                };
-
-                skyApmLogDispatcher.Dispatch(logContext);
-            }
-
-            await Task.CompletedTask;
-        }
-
-        public async Task OnEmptyBatchAsync()
-        {
-            await Task.CompletedTask;
+            skyApmLogDispatcher.Dispatch(logContext);
         }
     }
 }

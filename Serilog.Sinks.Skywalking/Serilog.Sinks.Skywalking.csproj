@@ -8,6 +8,9 @@
 		<PackageProjectUrl>https://github.com/SpringHgui/serilog-sinks-skywalking</PackageProjectUrl>
 		<Authors>Gui.H</Authors>
 		<Description>Write Serilog events to skywalking apm</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<Copyright>MIT</Copyright>
+		<PackageTags>aspnetcore;serilog;skywalking</PackageTags>
 	</PropertyGroup>
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -15,7 +18,15 @@
 	<ItemGroup>
 		<PackageReference Include="Serilog" Version="2.11.0" />
 		<PackageReference Include="Serilog.Sinks.PeriodicBatching" Version="2.3.1" />
-		<PackageReference Include="SkyAPM.Core" Version="2.0.0" />
+		<!--<PackageReference Include="SkyAPM.Core" Version="2.0.0" />-->
 	</ItemGroup>
-
+	<ItemGroup>
+		<None Include="..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\..\SkyAPM-dotnet\src\SkyApm.Core\SkyApm.Core.csproj" />
+	</ItemGroup>
 </Project>

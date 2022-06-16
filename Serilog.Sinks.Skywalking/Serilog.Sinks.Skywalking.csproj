@@ -2,6 +2,12 @@
 
 	<PropertyGroup>
 		<TargetFrameworks>net5.0</TargetFrameworks>
+		<Version>0.0.1</Version>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<PackageProjectUrl>https://github.com/SpringHgui/serilog-sinks-skywalking</PackageProjectUrl>
+		<Authors>Gui.H</Authors>
+		<Description>Write Serilog events to skywalking apm</Description>
 	</PropertyGroup>
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />

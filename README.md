@@ -7,7 +7,7 @@ Write Serilog events to skywalking apm
 
 1. 集成[SkyAPM.Agent.AspNetCore](https://github.com/SkyAPM/SkyAPM-dotnet)
 2. 集成[Serilog.AspNetCore](https://github.com/serilog/serilog-aspnetcore)
-3. 添加
+3. 安装nuget包 `Serilog.Sinks.Skywalking`
 ```c#
 public static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args)

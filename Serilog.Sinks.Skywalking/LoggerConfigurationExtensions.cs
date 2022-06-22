@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
-using Serilog.Configuration;
+﻿using Serilog.Configuration;
 using Serilog.Formatting;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.PeriodicBatching;
@@ -26,19 +24,19 @@ namespace Serilog
                 .Sink(new SkywalkingSink(serviceCollection, formatter));
         }
 
-        public static LoggerConfiguration SkywalkingBatch(
-            this LoggerSinkConfiguration loggerConfiguration, IServiceProvider serviceCollection, int batchSizeLimit, int period, ITextFormatter formatter = null)
-        {
-            var batchingOptions = new PeriodicBatchingSinkOptions
-            {
-                BatchSizeLimit = batchSizeLimit,
-                Period = TimeSpan.FromSeconds(period)
-            };
+        //public static LoggerConfiguration SkywalkingBatch(
+        //    this LoggerSinkConfiguration loggerConfiguration, IServiceProvider serviceCollection, int batchSizeLimit, int period, ITextFormatter formatter = null)
+        //{
+        //    var batchingOptions = new PeriodicBatchingSinkOptions
+        //    {
+        //        BatchSizeLimit = batchSizeLimit,
+        //        Period = TimeSpan.FromSeconds(period)
+        //    };
 
-            var batchingSink = new PeriodicBatchingSink(new SkywalkingBatchedSink(serviceCollection, formatter), batchingOptions);
+        //    var batchingSink = new PeriodicBatchingSink(new SkywalkingBatchedSink(serviceCollection, formatter), batchingOptions);
 
-            return loggerConfiguration
-                .Sink(batchingSink);
-        }
+        //    return loggerConfiguration
+        //        .Sink(batchingSink);
+        //}
     }
 }

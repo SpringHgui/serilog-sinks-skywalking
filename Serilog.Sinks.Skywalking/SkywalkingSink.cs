@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Serilog.Core;
-using Serilog.Events;
 using Serilog.Formatting;
 using Serilog.Sinks.PeriodicBatching;
 using SkyApm.Tracing;
@@ -10,59 +9,29 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
+using SkyApm.Tracing.Segments;
+using LogEvent = Serilog.Events.LogEvent;
 
 namespace Serilog.Sinks.Skywalking
 {
     public class SkywalkingSink : ILogEventSink
     {
         ITextFormatter _formatter;
-        IServiceProvider _serviceCollection;
 
         public SkywalkingSink(IServiceProvider serviceCollection, ITextFormatter formatter)
         {
-            this._serviceCollection = serviceCollection;
-            this._formatter = formatter;
+            _formatter = formatter;
+            _skyApmLogDispatcher = serviceCollection.GetRequiredService<ISkyApmLogDispatcher>();
+            _entrySegmentContextAccessor = serviceCollection.GetRequiredService<IEntrySegmentContextAccessor>();
+
         }
 
         ISkyApmLogDispatcher _skyApmLogDispatcher;
         IEntrySegmentContextAccessor _entrySegmentContextAccessor;
 
-        object _locker = new object();
-
         public void Emit(LogEvent logEvent)
         {
-            if (_skyApmLogDispatcher == null)
-            {
-                lock (_locker)
-                {
-                    if (_skyApmLogDispatcher == null)
-                    {
-                        _skyApmLogDispatcher = _serviceCollection.GetService<ISkyApmLogDispatcher>();
-                        if (_skyApmLogDispatcher == null)
-                            return;
-                    }
-                }
-            }
-
-            if (_entrySegmentContextAccessor == null)
-            {
-                lock (_locker)
-                {
-                    if (_entrySegmentContextAccessor == null)
-                    {
-                        _entrySegmentContextAccessor = _serviceCollection.GetService<IEntrySegmentContextAccessor>();
-                        if (_entrySegmentContextAccessor == null)
-                            return;
-                    }
-                }
-            }
-
-            if (_entrySegmentContextAccessor.Context == null)
-            {
-                return;
-            }
-
-            string renderMessage = null;
+            string renderMessage;
             if (_formatter != null)
             {
                 using var render = new StringWriter(CultureInfo.InvariantCulture);
@@ -78,17 +47,22 @@ namespace Serilog.Sinks.Skywalking
                     renderMessage += Environment.NewLine + logEvent.Exception.ToString();
             }
 
-            var logs = new Dictionary<string, object>();
-
-            //logs.Add("className", "className");
-            logs.Add("Level", logEvent.Level.ToString());
-            logs.Add("logMessage", renderMessage);
-
-            var logContext = new SkyApm.Tracing.Segments.LoggerContext()
+            var logs = new Dictionary<string, object>
+            {
+                { "Level", logEvent.Level.ToString() },
+                { "logMessage", renderMessage }
+            };
+            SegmentContext segmentContext = _entrySegmentContextAccessor.Context;
+            var logContext = new LoggerRequest
             {
                 Logs = logs,
-                SegmentContext = _entrySegmentContextAccessor.Context,
-                Date = DateTimeOffset.UtcNow.Offset.Ticks
+                SegmentReference = segmentContext == null
+                    ? null
+                    : new LoggerSegmentReference
+                    {
+                        TraceId = segmentContext.TraceId,
+                        SegmentId = segmentContext.SegmentId
+                    }
             };
 
             _skyApmLogDispatcher.Dispatch(logContext);
